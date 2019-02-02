@@ -58,31 +58,10 @@ resource "aws_key_pair" "web" {
   public_key = "${file(pathexpand(var.public_key))}"
 }
 
-# resource "aws_network_interface" "foo" {
-#   subnet_id   = "${aws_subnet.public-subnet1.id}"
-#   security_groups = ["${aws_security_group.bastion-security-group.id}"]
-#   attachment {
-#     instance     = "${aws_instance.bastion.id}"
-#     device_index = 1
-#   }
-
-#   tags = {
-#     Name = "primary_network_interface"
-#   }
+# resource "aws_key_pair" "bastion" {
+#   public_key = ""
 # }
 
-# resource "aws_network_interface" "bar" {
-#   subnet_id   = "${aws_subnet.public-subnet2.id}"
-#   # security_groups = ["${aws_security_group.bastion-security-group.id}"]
-#   attachment {
-#     instance     = "${aws_instance.bastion.id}"
-#     device_index = 2
-#   }
-
-#   tags = {
-#     Name = "secondary_network_interface"
-#   }
-# }
 
 resource "aws_instance" "bastion" {
   ami           = "${var.ami}"
@@ -92,6 +71,14 @@ resource "aws_instance" "bastion" {
   subnet_id                   = "${aws_subnet.public-subnet1.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
+  user_data                   = <<EOF
+#!/bin/sh
+ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
+EOF
+
+  # provisioner "id_rsa_pub" {
+  #   command = "cat ~/.ssh/id_rsa.pub >> ${aws_key_pair.bastion.key_name} "
+  # }
   
   tags = {
     Name = "Bastion"
@@ -106,6 +93,7 @@ resource "aws_instance" "web-instance1" {
   subnet_id                   = "${aws_subnet.public-subnet1.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
+  # key_name                    = "${aws_key_pair.bastion.key_name}"
   user_data                   = <<EOF
 #!/bin/sh
 yum install -y nginx

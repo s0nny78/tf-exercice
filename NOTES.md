@@ -7,6 +7,8 @@ Terraform v0.11.11
 ```bash
 terraform plan -var-file=[region].tfvars -parallelism=1
 terraform apply -var-file=[region].tfvars -auto-approve -parallelism=1
+
+terraform destroy -target RESOURCE_TYPE.NAME -var-file=[region].tfvars
 terraform destroy -var-file=[region].tfvars -auto-approve -parallelism=1
 ```
 
