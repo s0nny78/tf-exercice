@@ -7,29 +7,51 @@ resource "aws_vpc" "vpc" {
   enable_dns_hostnames = true
 }
 
-resource "aws_subnet" "public-subnet" {
+resource "aws_subnet" "public-subnet1" {
   vpc_id            = "${aws_vpc.vpc.id}"
-  cidr_block        = "${var.subnet-cidr-public}"
+  cidr_block        = "${var.subnet-cidr-public1}"
   availability_zone = "${var.region}a"
 }
 
-resource "aws_route_table" "public-subnet-route-table" {
+resource "aws_subnet" "public-subnet2" {
+  vpc_id            = "${aws_vpc.vpc.id}"
+  cidr_block        = "${var.subnet-cidr-public2}"
+  availability_zone = "${var.region}b"
+}
+
+resource "aws_route_table" "public-subnet-route-table1" {
   vpc_id = "${aws_vpc.vpc.id}"
 }
+
+resource "aws_route_table" "public-subnet-route-table2" {
+  vpc_id = "${aws_vpc.vpc.id}"
+}
+
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = "${aws_vpc.vpc.id}"
 }
 
-resource "aws_route" "public-subnet-route" {
+resource "aws_route" "public-subnet-route1" {
   destination_cidr_block  = "0.0.0.0/0"
   gateway_id              = "${aws_internet_gateway.igw.id}"
-  route_table_id          = "${aws_route_table.public-subnet-route-table.id}"
+  route_table_id          = "${aws_route_table.public-subnet-route-table1.id}"
 }
 
-resource "aws_route_table_association" "public-subnet-route-table-association" {
-  subnet_id      = "${aws_subnet.public-subnet.id}"
-  route_table_id = "${aws_route_table.public-subnet-route-table.id}"
+resource "aws_route" "public-subnet-route2" {
+  destination_cidr_block  = "0.0.0.0/0"
+  gateway_id              = "${aws_internet_gateway.igw.id}"
+  route_table_id          = "${aws_route_table.public-subnet-route-table2.id}"
+}
+
+resource "aws_route_table_association" "public-subnet-route-table-association1" {
+  subnet_id      = "${aws_subnet.public-subnet1.id}"
+  route_table_id = "${aws_route_table.public-subnet-route-table1.id}"
+}
+
+resource "aws_route_table_association" "public-subnet-route-table-association2" {
+  subnet_id      = "${aws_subnet.public-subnet2.id}"
+  route_table_id = "${aws_route_table.public-subnet-route-table2.id}"
 }
 
 resource "aws_key_pair" "web" {
@@ -37,11 +59,11 @@ resource "aws_key_pair" "web" {
 }
 
 resource "aws_instance" "web-instance1" {
-  ami           = "ami-cdbfa4ab"
+  ami           = "${var.ami}"
   availability_zone = "${var.region}a"
   instance_type = "t2.small"
   vpc_security_group_ids      = [ "${aws_security_group.web-instance-security-group.id}" ]
-  subnet_id                   = "${aws_subnet.public-subnet.id}"
+  subnet_id                   = "${aws_subnet.public-subnet1.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
   user_data                   = <<EOF
@@ -52,11 +74,11 @@ EOF
 }
 
 resource "aws_instance" "web-instance2" {
-  ami           = "ami-cdbfa4ab"
-  availability_zone = "${var.region}a"
+  ami           = "${var.ami}"
+  availability_zone = "${var.region}b"
   instance_type = "t2.small"
   vpc_security_group_ids      = [ "${aws_security_group.web-instance-security-group.id}" ]
-  subnet_id                   = "${aws_subnet.public-subnet.id}"
+  subnet_id                   = "${aws_subnet.public-subnet2.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
   user_data                   = <<EOF
@@ -70,7 +92,7 @@ EOF
 resource "aws_elb" "bar" {
   name               = "foobar-terraform-elb"
   security_groups      = [ "${aws_security_group.web-elb-security-group.id}" ]
-  subnets = ["${aws_subnet.public-subnet.id}"]
+  subnets = ["${aws_subnet.public-subnet1.id}", "${aws_subnet.public-subnet2.id}"]
 
   listener {
     instance_port     = 80
