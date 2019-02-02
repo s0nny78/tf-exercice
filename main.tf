@@ -58,6 +58,46 @@ resource "aws_key_pair" "web" {
   public_key = "${file(pathexpand(var.public_key))}"
 }
 
+# resource "aws_network_interface" "foo" {
+#   subnet_id   = "${aws_subnet.public-subnet1.id}"
+#   security_groups = ["${aws_security_group.bastion-security-group.id}"]
+#   attachment {
+#     instance     = "${aws_instance.bastion.id}"
+#     device_index = 1
+#   }
+
+#   tags = {
+#     Name = "primary_network_interface"
+#   }
+# }
+
+# resource "aws_network_interface" "bar" {
+#   subnet_id   = "${aws_subnet.public-subnet2.id}"
+#   # security_groups = ["${aws_security_group.bastion-security-group.id}"]
+#   attachment {
+#     instance     = "${aws_instance.bastion.id}"
+#     device_index = 2
+#   }
+
+#   tags = {
+#     Name = "secondary_network_interface"
+#   }
+# }
+
+resource "aws_instance" "bastion" {
+  ami           = "${var.ami}"
+  availability_zone = "${var.region}a"
+  instance_type = "t2.small"
+  vpc_security_group_ids      = [ "${aws_security_group.bastion-security-group.id}" ]
+  subnet_id                   = "${aws_subnet.public-subnet1.id}"
+  associate_public_ip_address = true
+  key_name                    = "${aws_key_pair.web.key_name}"
+  
+  tags = {
+    Name = "Bastion"
+  }
+}
+
 resource "aws_instance" "web-instance1" {
   ami           = "${var.ami}"
   availability_zone = "${var.region}a"
@@ -88,7 +128,6 @@ service nginx start
 EOF
 }
 
-# Create a new load balancer
 resource "aws_elb" "bar" {
   name               = "foobar-terraform-elb"
   security_groups      = [ "${aws_security_group.web-elb-security-group.id}" ]
@@ -159,7 +198,8 @@ resource "aws_security_group" "web-instance-security-group" {
       from_port   = 22
       to_port     = 22
       protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
+      cidr_blocks = ["${aws_instance.bastion.private_ip}/32"]
+      # Shall fix with prefix_list_ids when got time
     }
   ]
 
@@ -171,11 +211,26 @@ resource "aws_security_group" "web-instance-security-group" {
   }
 }
 
+resource "aws_security_group" "bastion-security-group" {
+  name = "bastion-sg"
+  vpc_id      = "${aws_vpc.vpc.id}"
 
+  ingress = [
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
 
-# output "web_domain" {
-#   value = "${aws_instance.web-instance.public_dns}"
-# }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
 output "web_domain" {
   value = "${aws_elb.bar.dns_name}"
