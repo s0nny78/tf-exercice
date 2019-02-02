@@ -20,6 +20,24 @@ terraform output web_domain | xargs curl
 
 `https://github.com/sebwells/example-java-spring-boot-app`
 
+For testing (UL/DL):
+https://transfer.sh/
+
+Java commands:
+```bash
+sudo yum install java-1.8.0
+sudo yum remove java-1.7.0-openjdk
+# sudo yum install tomcat8
+java8 -jar demo-0.0.1-SNAPSHOT.jar
+
+lsof -i -P -n |grep 8080
+
+# update conf
+service nginx restart
+
+```
+
+
 To do:
 ⋅⋅* 1 SG for the 2 EC2. Code ++
 ⋅⋅* More vars and nothing hardcoded. Code ++
@@ -28,3 +46,4 @@ To do:
 ⋅⋅* Autoscaling group for ELB instead of 2 EC2. Cost ++
 ⋅⋅* 80 on EC2 only from the ELB. Security ++
 ⋅⋅* Try bastion module: https://registry.terraform.io/modules/Guimove/bastion/aws/1.1.0
+⋅⋅* re-org the module (seperate vpc and ec2)

@@ -58,11 +58,6 @@ resource "aws_key_pair" "web" {
   public_key = "${file(pathexpand(var.public_key))}"
 }
 
-# resource "aws_key_pair" "bastion" {
-#   public_key = ""
-# }
-
-
 resource "aws_instance" "bastion" {
   ami           = "${var.ami}"
   availability_zone = "${var.region}a"
@@ -71,14 +66,14 @@ resource "aws_instance" "bastion" {
   subnet_id                   = "${aws_subnet.public-subnet1.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
-  user_data                   = <<EOF
-#!/bin/sh
-ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
-EOF
+#   user_data                   = <<EOF
+# #!/bin/sh
+# ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
+# EOF
 
-  # provisioner "id_rsa_pub" {
-  #   command = "cat ~/.ssh/id_rsa.pub >> ${aws_key_pair.bastion.key_name} "
-  # }
+  provisioner "local-exec" {
+    command = " ${file(pathexpand(var.public_key))} >> /home/ec2-user/id_rsa.pub "
+  }
   
   tags = {
     Name = "Bastion"
