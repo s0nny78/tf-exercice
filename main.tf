@@ -58,6 +58,8 @@ resource "aws_key_pair" "web" {
   public_key = "${file(pathexpand(var.public_key))}"
 }
 
+
+
 resource "aws_instance" "bastion" {
   ami           = "${var.ami}"
   availability_zone = "${var.region}a"
@@ -66,14 +68,27 @@ resource "aws_instance" "bastion" {
   subnet_id                   = "${aws_subnet.public-subnet1.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
-#   user_data                   = <<EOF
-# #!/bin/sh
-# ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
-# EOF
 
-  provisioner "local-exec" {
-    command = " ${file(pathexpand(var.public_key))} >> /home/ec2-user/id_rsa.pub "
+  connection {
+    type = "ssh"
+    user = "ec2-user"
+    private_key = "${file("~/.ssh/id_rsa")}"
   }
+
+  provisioner "file" {
+    source      = "/Users/houaritadjer/.ssh/id_rsa.pub"
+    destination = "/home/ec2-user/.ssh/id_rsa.pub"
+  }
+
+  provisioner "file" {
+    source      = "/Users/houaritadjer/.ssh/id_rsa"
+    destination = "/home/ec2-user/.ssh/id_rsa"
+  }
+
+    user_data                   = <<EOF
+#!/bin/sh
+chmod 400 /home/ec2-user/.ssh/id_rsa
+EOF
   
   tags = {
     Name = "Bastion"
@@ -89,12 +104,23 @@ resource "aws_instance" "web-instance1" {
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
   # key_name                    = "${aws_key_pair.bastion.key_name}"
+  connection {
+    type = "ssh"
+    user = "ec2-user"
+    private_key = "${file("~/.ssh/id_rsa")}"
+  }
+  provisioner "file" {
+    source      = "./demo-0.0.1-SNAPSHOT.jar"
+    destination = "/home/ec2-user/demo-0.0.1-SNAPSHOT.jar"
+  }
+
   user_data                   = <<EOF
 #!/bin/sh
 yum install -y nginx
 service nginx start
 EOF
 }
+
 
 resource "aws_instance" "web-instance2" {
   ami           = "${var.ami}"
@@ -104,6 +130,16 @@ resource "aws_instance" "web-instance2" {
   subnet_id                   = "${aws_subnet.public-subnet2.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
+  connection {
+    type = "ssh"
+    user = "ec2-user"
+    private_key = "${file("~/.ssh/id_rsa")}"
+  }
+  provisioner "file" {
+    source      = "./demo-0.0.1-SNAPSHOT.jar"
+    destination = "/home/ec2-user/demo-0.0.1-SNAPSHOT.jar"
+  }
+
   user_data                   = <<EOF
 #!/bin/sh
 yum install -y nginx
