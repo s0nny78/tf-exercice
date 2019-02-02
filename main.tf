@@ -36,8 +36,9 @@ resource "aws_key_pair" "web" {
   public_key = "${file(pathexpand(var.public_key))}"
 }
 
-resource "aws_instance" "web-instance" {
+resource "aws_instance" "web-instance1" {
   ami           = "ami-cdbfa4ab"
+  availability_zone = "${var.region}a"
   instance_type = "t2.small"
   vpc_security_group_ids      = [ "${aws_security_group.web-instance-security-group.id}" ]
   subnet_id                   = "${aws_subnet.public-subnet.id}"
@@ -50,7 +51,55 @@ service nginx start
 EOF
 }
 
-resource "aws_security_group" "web-instance-security-group" {
+resource "aws_instance" "web-instance2" {
+  ami           = "ami-cdbfa4ab"
+  availability_zone = "${var.region}a"
+  instance_type = "t2.small"
+  vpc_security_group_ids      = [ "${aws_security_group.web-instance-security-group.id}" ]
+  subnet_id                   = "${aws_subnet.public-subnet.id}"
+  associate_public_ip_address = true
+  key_name                    = "${aws_key_pair.web.key_name}"
+  user_data                   = <<EOF
+#!/bin/sh
+yum install -y nginx
+service nginx start
+EOF
+}
+
+# Create a new load balancer
+resource "aws_elb" "bar" {
+  name               = "foobar-terraform-elb"
+  security_groups      = [ "${aws_security_group.web-elb-security-group.id}" ]
+  subnets = ["${aws_subnet.public-subnet.id}"]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    target              = "HTTP:80/"
+    interval            = 30
+  }
+
+  instances                   = ["${aws_instance.web-instance1.id}", "${aws_instance.web-instance2.id}"]
+  cross_zone_load_balancing   = true
+  idle_timeout                = 400
+  connection_draining         = true
+  connection_draining_timeout = 400
+
+  tags = {
+    Name = "foobar-terraform-elb"
+  }
+}
+
+resource "aws_security_group" "web-elb-security-group" {
+  name = "elb-sg"
   vpc_id      = "${aws_vpc.vpc.id}"
 
   ingress = [
@@ -58,6 +107,30 @@ resource "aws_security_group" "web-instance-security-group" {
       from_port   = 80
       to_port     = 80
       protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "web-instance-security-group" {
+  depends_on = ["aws_security_group.web-elb-security-group"]
+  name = "ec2-sg"
+  vpc_id      = "${aws_vpc.vpc.id}"
+
+  ingress = [
+    {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      # prefix_list_ids = ["${aws_security_group.web-elb-security-group.id}"]
+      # Error authorizing security group ingress rules: InvalidGroup.NotFound: The security group '' does not exist. While it exists...
       cidr_blocks = ["0.0.0.0/0"]
     },
     {
@@ -76,6 +149,12 @@ resource "aws_security_group" "web-instance-security-group" {
   }
 }
 
+
+
+# output "web_domain" {
+#   value = "${aws_instance.web-instance.public_dns}"
+# }
+
 output "web_domain" {
-  value = "${aws_instance.web-instance.public_dns}"
+  value = "${aws_elb.bar.dns_name}"
 }
