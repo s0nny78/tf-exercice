@@ -58,7 +58,17 @@ resource "aws_key_pair" "web" {
   public_key = "${file(pathexpand(var.public_key))}"
 }
 
+resource "aws_s3_bucket" "bucket" {
+  bucket = "my-tf-exercice-test-bucket"
+  acl    = "public-read"
+}
 
+resource "aws_s3_bucket_object" "object" {
+  bucket = "my-tf-exercice-test-bucket"
+  acl    = "public-read"
+  key    = "demo-0.0.1-SNAPSHOT.jar"
+  source = "./demo-0.0.1-SNAPSHOT.jar"
+}
 
 resource "aws_instance" "bastion" {
   ami           = "${var.ami}"
@@ -109,15 +119,14 @@ resource "aws_instance" "web-instance1" {
     user = "ec2-user"
     private_key = "${file("~/.ssh/id_rsa")}"
   }
-  provisioner "file" {
-    source      = "/Users/houaritadjer/Documents/tf-exercice/demo-0.0.1-SNAPSHOT.jar"
-    destination = "/home/ec2-user/demo-0.0.1-SNAPSHOT.jar"
-  }
 
   user_data                   = <<EOF
 #!/bin/sh
 yum install -y nginx
+yum install -y java-1.8.0
+wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar
 service nginx start
+java8 -jar demo-0.0.1-SNAPSHOT.jar
 EOF
 }
 
@@ -135,15 +144,14 @@ resource "aws_instance" "web-instance2" {
     user = "ec2-user"
     private_key = "${file("~/.ssh/id_rsa")}"
   }
-  provisioner "file" {
-    source      = "/Users/houaritadjer/Documents/tf-exercice/demo-0.0.1-SNAPSHOT.jar"
-    destination = "/home/ec2-user/demo-0.0.1-SNAPSHOT.jar"
-  }
 
   user_data                   = <<EOF
 #!/bin/sh
+yum install -y java-1.8.0
 yum install -y nginx
+wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar
 service nginx start
+java8 -jar demo-0.0.1-SNAPSHOT.jar
 EOF
 }
 

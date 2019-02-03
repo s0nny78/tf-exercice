@@ -46,12 +46,12 @@ sudo service nginx restart
 
 
 To do:
-⋅⋅* 1 SG for the 2 EC2. Code ++
-⋅⋅* More vars and nothing hardcoded. Code ++
-⋅⋅* Naming and Taging. Code ++
-⋅⋅* Use EFS. Security ++
-⋅⋅* Autoscaling group for ELB instead of 2 EC2. Cost ++
-⋅⋅* 80 on EC2 only from the ELB. Security ++
-⋅⋅* Try bastion module: https://registry.terraform.io/modules/Guimove/bastion/aws/1.1.0
-⋅⋅* re-org the module (seperate vpc and ec2)
-⋅⋅* jar file in s3
+* 1 SG for the 2 EC2. Code ++
+* More vars and nothing hardcoded. Code ++
+* Naming and Taging. Code ++
+* Use EFS. Security ++
+* Autoscaling group for ELB instead of 2 EC2. Cost ++
+* 80 on EC2 only from the ELB. Security ++
+* Try bastion module: https://registry.terraform.io/modules/Guimove/bastion/aws/1.1.0
+* re-org the module (seperate vpc and ec2)
+* jar file in s3
