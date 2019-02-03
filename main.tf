@@ -27,7 +27,6 @@ resource "aws_route_table" "public-subnet-route-table2" {
   vpc_id = "${aws_vpc.vpc.id}"
 }
 
-
 resource "aws_internet_gateway" "igw" {
   vpc_id = "${aws_vpc.vpc.id}"
 }
@@ -114,7 +113,7 @@ resource "aws_instance" "bastion" {
 
   user_data                   = <<EOF
 #!/bin/sh
-chmod 400 /home/ec2-user/.ssh/id_rsa
+sleep 120s; chmod 400 /home/ec2-user/.ssh/id_rsa
 EOF
   
   tags = {
@@ -130,7 +129,7 @@ EOF
 # }
 
 resource "aws_instance" "web-instance1" {
-  depends_on = ["aws_s3_bucket_object.object1", "aws_s3_bucket_object.object2"]
+  depends_on = ["aws_s3_bucket_object.object1", "aws_s3_bucket_object.object2", "aws_s3_bucket_object.object3"]
   ami           = "${var.ami}"
   availability_zone = "${var.region}a"
   instance_type = "t2.small"
@@ -165,7 +164,7 @@ EOF
 
 
 resource "aws_instance" "web-instance2" {
-  depends_on = ["aws_s3_bucket_object.object1", "aws_s3_bucket_object.object2"]
+  depends_on = ["aws_s3_bucket_object.object1", "aws_s3_bucket_object.object2", "aws_s3_bucket_object.object3"]
   ami           = "${var.ami}"
   availability_zone = "${var.region}b"
   instance_type = "t2.small"
@@ -311,7 +310,7 @@ resource "aws_security_group" "bastion-security-group" {
 
 resource "null_resource" "cmd" {
   provisioner "local-exec" {
-    command = "sleep 120s; curl ${aws_elb.bar.dns_name}"
+    command = "(sleep 300 && curl ${aws_elb.bar.dns_name})"
   }
 }
 

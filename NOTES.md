@@ -5,6 +5,7 @@ Terraform v0.11.11
 --
 
 ```bash
+terraform init
 terraform plan -var-file=[region].tfvars -parallelism=1
 terraform apply -var-file=[region].tfvars -auto-approve -parallelism=1
 
@@ -38,9 +39,7 @@ lsof -i -P -n |grep 8080
 
 # update conf
 # /etc/nginx/conf.d/java.conf
-
-# add at the end of file /etc/nginx/nginx.conf
-server_names_hash_bucket_size 128;
+# add longer dns in /etc/nginx/nginx.conf
 
 sudo nginx -t
 sudo service nginx restart
@@ -49,7 +48,6 @@ sudo service nginx restart
 
 
 To do:
-* 1 SG for the 2 EC2. Code ++
 * More vars and nothing hardcoded. Code ++
 * Naming and Taging. Code ++
 * Use EFS. Security ++
@@ -59,3 +57,4 @@ To do:
 * re-org the module (seperate vpc and elb,ec2,s3)
 * bucket policy for s3
 * Stop to use s3 for files but push them from tf
+* Route53
