@@ -85,7 +85,7 @@ resource "aws_instance" "bastion" {
     destination = "/home/ec2-user/.ssh/id_rsa"
   }
 
-    user_data                   = <<EOF
+  user_data                   = <<EOF
 #!/bin/sh
 chmod 400 /home/ec2-user/.ssh/id_rsa
 EOF
@@ -110,7 +110,7 @@ resource "aws_instance" "web-instance1" {
     private_key = "${file("~/.ssh/id_rsa")}"
   }
   provisioner "file" {
-    source      = "./demo-0.0.1-SNAPSHOT.jar"
+    source      = "/Users/houaritadjer/Documents/tf-exercice/demo-0.0.1-SNAPSHOT.jar"
     destination = "/home/ec2-user/demo-0.0.1-SNAPSHOT.jar"
   }
 
@@ -136,7 +136,7 @@ resource "aws_instance" "web-instance2" {
     private_key = "${file("~/.ssh/id_rsa")}"
   }
   provisioner "file" {
-    source      = "./demo-0.0.1-SNAPSHOT.jar"
+    source      = "/Users/houaritadjer/Documents/tf-exercice/demo-0.0.1-SNAPSHOT.jar"
     destination = "/home/ec2-user/demo-0.0.1-SNAPSHOT.jar"
   }
 

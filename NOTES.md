@@ -25,15 +25,22 @@ https://transfer.sh/
 
 Java commands:
 ```bash
+wget https://transfer.sh/%28/qPvSl/demo-0.0.1-SNAPSHOT.jar%29.zip
+unzip "demo-0.0.1-SNAPSHOT.jar).zip"
+rm -rf "demo-0.0.1-SNAPSHOT.jar).zip"
+
 sudo yum install java-1.8.0
-sudo yum remove java-1.7.0-openjdk
+# sudo yum remove java-1.7.0-openjdk
 # sudo yum install tomcat8
 java8 -jar demo-0.0.1-SNAPSHOT.jar
 
 lsof -i -P -n |grep 8080
 
 # update conf
-service nginx restart
+# /etc/nginx/conf.d/java.conf
+
+sudo nginx -t
+sudo service nginx restart
 
 ```
 
@@ -47,3 +54,4 @@ To do:
 ⋅⋅* 80 on EC2 only from the ELB. Security ++
 ⋅⋅* Try bastion module: https://registry.terraform.io/modules/Guimove/bastion/aws/1.1.0
 ⋅⋅* re-org the module (seperate vpc and ec2)
+⋅⋅* jar file in s3
