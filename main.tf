@@ -310,7 +310,7 @@ resource "aws_security_group" "bastion-security-group" {
 
 resource "null_resource" "cmd" {
   provisioner "local-exec" {
-    command = "(sleep 300 && curl ${aws_elb.bar.dns_name})"
+    command = "(sleep 300 && curl -s ${aws_elb.bar.dns_name})"
   }
 }
 
