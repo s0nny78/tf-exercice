@@ -39,6 +39,9 @@ lsof -i -P -n |grep 8080
 # update conf
 # /etc/nginx/conf.d/java.conf
 
+# add at the end of file /etc/nginx/nginx.conf
+server_names_hash_bucket_size 128;
+
 sudo nginx -t
 sudo service nginx restart
 
@@ -53,5 +56,5 @@ To do:
 * Autoscaling group for ELB instead of 2 EC2. Cost ++
 * 80 on EC2 only from the ELB. Security ++
 * Try bastion module: https://registry.terraform.io/modules/Guimove/bastion/aws/1.1.0
-* re-org the module (seperate vpc and ec2)
-* jar file in s3
+* re-org the module (seperate vpc and ec2,s3)
+* bucket policy for s3

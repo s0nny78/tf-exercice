@@ -64,6 +64,7 @@ resource "aws_s3_bucket" "bucket" {
 }
 
 resource "aws_s3_bucket_object" "object" {
+  depends_on = ["aws_s3_bucket.bucket"]
   bucket = "my-tf-exercice-test-bucket"
   acl    = "public-read"
   key    = "demo-0.0.1-SNAPSHOT.jar"
@@ -106,6 +107,7 @@ EOF
 }
 
 resource "aws_instance" "web-instance1" {
+  depends_on = ["aws_s3_bucket_object.object"]
   ami           = "${var.ami}"
   availability_zone = "${var.region}a"
   instance_type = "t2.small"
@@ -124,7 +126,7 @@ resource "aws_instance" "web-instance1" {
 #!/bin/sh
 yum install -y nginx
 yum install -y java-1.8.0
-wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar
+wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar -P /home/ec2-user
 service nginx start
 java8 -jar demo-0.0.1-SNAPSHOT.jar
 EOF
@@ -132,6 +134,7 @@ EOF
 
 
 resource "aws_instance" "web-instance2" {
+  depends_on = ["aws_s3_bucket_object.object"]
   ami           = "${var.ami}"
   availability_zone = "${var.region}b"
   instance_type = "t2.small"
@@ -149,7 +152,7 @@ resource "aws_instance" "web-instance2" {
 #!/bin/sh
 yum install -y java-1.8.0
 yum install -y nginx
-wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar
+wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar -P /home/ec2-user
 service nginx start
 java8 -jar demo-0.0.1-SNAPSHOT.jar
 EOF
