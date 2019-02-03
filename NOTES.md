@@ -56,5 +56,6 @@ To do:
 * Autoscaling group for ELB instead of 2 EC2. Cost ++
 * 80 on EC2 only from the ELB. Security ++
 * Try bastion module: https://registry.terraform.io/modules/Guimove/bastion/aws/1.1.0
-* re-org the module (seperate vpc and ec2,s3)
+* re-org the module (seperate vpc and elb,ec2,s3)
 * bucket policy for s3
+* Stop to use s3 for files but push them from tf

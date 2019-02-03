@@ -63,12 +63,28 @@ resource "aws_s3_bucket" "bucket" {
   acl    = "public-read"
 }
 
-resource "aws_s3_bucket_object" "object" {
+resource "aws_s3_bucket_object" "object1" {
   depends_on = ["aws_s3_bucket.bucket"]
   bucket = "my-tf-exercice-test-bucket"
   acl    = "public-read"
   key    = "demo-0.0.1-SNAPSHOT.jar"
   source = "./demo-0.0.1-SNAPSHOT.jar"
+}
+
+resource "aws_s3_bucket_object" "object2" {
+  depends_on = ["aws_s3_bucket.bucket"]
+  bucket = "my-tf-exercice-test-bucket"
+  acl    = "public-read"
+  key    = "nginx.conf"
+  source = "./nginx.conf"
+}
+
+resource "aws_s3_bucket_object" "object3" {
+  depends_on = ["aws_s3_bucket.bucket"]
+  bucket = "my-tf-exercice-test-bucket"
+  acl    = "public-read"
+  key    = "java.conf"
+  source = "./java.conf"
 }
 
 resource "aws_instance" "bastion" {
@@ -106,8 +122,15 @@ EOF
   }
 }
 
+# data "template_file" "init" {
+#   template = "${file("java.conf")}"
+#   vars = {
+#     server_name = "${aws_elb.bar.dns_name}"
+#   }
+# }
+
 resource "aws_instance" "web-instance1" {
-  depends_on = ["aws_s3_bucket_object.object"]
+  depends_on = ["aws_s3_bucket_object.object1", "aws_s3_bucket_object.object2"]
   ami           = "${var.ami}"
   availability_zone = "${var.region}a"
   instance_type = "t2.small"
@@ -116,6 +139,9 @@ resource "aws_instance" "web-instance1" {
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
   # key_name                    = "${aws_key_pair.bastion.key_name}"
+  tags = {
+    Name = "ws1"
+  }
   connection {
     type = "ssh"
     user = "ec2-user"
@@ -126,15 +152,20 @@ resource "aws_instance" "web-instance1" {
 #!/bin/sh
 yum install -y nginx
 yum install -y java-1.8.0
-wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar -P /home/ec2-user
-service nginx start
-java8 -jar demo-0.0.1-SNAPSHOT.jar
+wget -q http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar -O /home/ec2-user/demo-0.0.1-SNAPSHOT.jar
+wget -q http://my-tf-exercice-test-bucket.s3.amazonaws.com/nginx.conf -O /etc/nginx/nginx.conf
+wget -q http://my-tf-exercice-test-bucket.s3.amazonaws.com/java.conf -O /etc/nginx/conf.d/java.conf
+#sleep 30s
+sed -i s/elbname/${aws_elb.bar.dns_name}/g /etc/nginx/conf.d/java.conf
+#echo "test = ${aws_elb.bar.dns_name}" >> /etc/nginx/conf.d/java.conf
+service nginx restart
+java8 -jar /home/ec2-user/demo-0.0.1-SNAPSHOT.jar
 EOF
 }
 
 
 resource "aws_instance" "web-instance2" {
-  depends_on = ["aws_s3_bucket_object.object"]
+  depends_on = ["aws_s3_bucket_object.object1", "aws_s3_bucket_object.object2"]
   ami           = "${var.ami}"
   availability_zone = "${var.region}b"
   instance_type = "t2.small"
@@ -142,6 +173,9 @@ resource "aws_instance" "web-instance2" {
   subnet_id                   = "${aws_subnet.public-subnet2.id}"
   associate_public_ip_address = true
   key_name                    = "${aws_key_pair.web.key_name}"
+  tags = {
+    Name = "ws2"
+  }
   connection {
     type = "ssh"
     user = "ec2-user"
@@ -150,11 +184,14 @@ resource "aws_instance" "web-instance2" {
 
   user_data                   = <<EOF
 #!/bin/sh
-yum install -y java-1.8.0
 yum install -y nginx
-wget http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar -P /home/ec2-user
-service nginx start
-java8 -jar demo-0.0.1-SNAPSHOT.jar
+yum install -y java-1.8.0
+wget -q http://my-tf-exercice-test-bucket.s3.amazonaws.com/demo-0.0.1-SNAPSHOT.jar -O /home/ec2-user/demo-0.0.1-SNAPSHOT.jar
+wget -q http://my-tf-exercice-test-bucket.s3.amazonaws.com/nginx.conf -O /etc/nginx/nginx.conf
+wget -q http://my-tf-exercice-test-bucket.s3.amazonaws.com/java.conf -O /etc/nginx/conf.d/java.conf
+sed -i s/elbname/${aws_elb.bar.dns_name}/g /etc/nginx/conf.d/java.conf
+service nginx restart
+java8 -jar /home/ec2-user/demo-0.0.1-SNAPSHOT.jar
 EOF
 }
 
@@ -178,7 +215,7 @@ resource "aws_elb" "bar" {
     interval            = 30
   }
 
-  instances                   = ["${aws_instance.web-instance1.id}", "${aws_instance.web-instance2.id}"]
+  # instances                   = ["${aws_instance.web-instance1.id}", "${aws_instance.web-instance2.id}"]
   cross_zone_load_balancing   = true
   idle_timeout                = 400
   connection_draining         = true
@@ -187,6 +224,16 @@ resource "aws_elb" "bar" {
   tags = {
     Name = "foobar-terraform-elb"
   }
+}
+
+resource "aws_elb_attachment" "baz1" {
+  elb      = "${aws_elb.bar.id}"
+  instance = "${aws_instance.web-instance1.id}"
+}
+
+resource "aws_elb_attachment" "baz2" {
+  elb      = "${aws_elb.bar.id}"
+  instance = "${aws_instance.web-instance2.id}"
 }
 
 resource "aws_security_group" "web-elb-security-group" {
@@ -259,6 +306,12 @@ resource "aws_security_group" "bastion-security-group" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "null_resource" "cmd" {
+  provisioner "local-exec" {
+    command = "sleep 120s; curl ${aws_elb.bar.dns_name}"
   }
 }
 
